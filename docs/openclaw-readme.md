@@ -5,7 +5,7 @@
 
 ## OpenClaw向け最短手順（これだけで投入可能）
 
-1. `GET http://<server-ip>:18000/healthz` が `ok` を返すことを確認
+1. `GET http://gateway.arigato-nas/healthz` が `ok` を返すことを確認
 2. `bookmeter` / `filmarks` を `/api/v1/sources/register` で登録（初回のみ）
 3. Browser Relayで取得した結果を下の ingest フォーマットで `/api/v1/ingest/events` にPOST
 4. `/api/v1/records` と管理画面で反映確認
@@ -14,7 +14,7 @@
 
 ```text
 Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ投入してください。
-- Gateway API: http://<server-ip>:18000
+- Gateway API: http://gateway.arigato-nas
 - API認証: すべての POST/PATCH リクエストに Authorization: Bearer <APIキー> ヘッダーを付けること
 - 事前確認: GET /healthz（認証不要）
 - source登録(初回): POST /api/v1/sources/register (bookmeter, filmarks)
@@ -28,8 +28,7 @@ Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ�
 ## 前提
 
 - arigato-gateway が起動済み
-  - API: `http://<server-ip>:18000`
-  - Admin: `http://<server-ip>:15173`
+  - API / Admin: `http://gateway.arigato-nas`
 - OpenClaw側で Browser Relay が利用可能
 - スクレイピングは OpenClaw 側で実施し、gatewayには正規化データを送る
 - **API認証**: 書き込み系リクエスト（POST / PATCH）には Bearer トークンが必要。すべてのリクエストに以下のヘッダーを付与すること:
@@ -44,7 +43,7 @@ Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ�
 ### 読書メーター
 
 ```bash
-curl -X POST http://<server-ip>:18000/api/v1/sources/register \
+curl -X POST http://gateway.arigato-nas/api/v1/sources/register \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"slug":"bookmeter","display_name":"読書メーター"}'
@@ -53,7 +52,7 @@ curl -X POST http://<server-ip>:18000/api/v1/sources/register \
 ### Filmarks
 
 ```bash
-curl -X POST http://<server-ip>:18000/api/v1/sources/register \
+curl -X POST http://gateway.arigato-nas/api/v1/sources/register \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"slug":"filmarks","display_name":"Filmarks"}'
@@ -64,7 +63,7 @@ curl -X POST http://<server-ip>:18000/api/v1/sources/register \
 ## 2) データ投入（ingest）
 
 ```bash
-curl -X POST http://<server-ip>:18000/api/v1/ingest/events \
+curl -X POST http://gateway.arigato-nas/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
@@ -93,12 +92,12 @@ curl -X POST http://<server-ip>:18000/api/v1/ingest/events \
 ### APIで確認
 
 ```bash
-curl http://<server-ip>:18000/api/v1/records?limit=20
+curl http://gateway.arigato-nas/api/v1/records?limit=20
 ```
 
 ### UIで確認
 
-- `http://<server-ip>:15173`
+- `http://gateway.arigato-nas`
 - Overview / Runs / Sources / Records で可視確認
 
 ---

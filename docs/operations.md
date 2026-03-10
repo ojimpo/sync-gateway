@@ -28,7 +28,7 @@ Run ID を使わず ingest のみ呼ぶ簡易モードでも動作する。
 ## Step 1: ソース登録（初回のみ）
 
 ```bash
-curl -X POST http://gateway-host:8000/api/v1/sources/register \
+curl -X POST http://gateway.arigato-nas/api/v1/sources/register \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
@@ -43,7 +43,7 @@ slug が既に登録されている場合は 409 が返るので、冪等な初�
 ## Step 2: Run 開始（任意）
 
 ```bash
-RUN_ID=$(curl -s -X POST http://gateway-host:8000/api/v1/runs \
+RUN_ID=$(curl -s -X POST http://gateway.arigato-nas/api/v1/runs \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"source_id": 1}' | jq '.id')
@@ -52,7 +52,7 @@ RUN_ID=$(curl -s -X POST http://gateway-host:8000/api/v1/runs \
 ## Step 3: データ投入
 
 ```bash
-curl -X POST http://gateway-host:8000/api/v1/ingest/events \
+curl -X POST http://gateway.arigato-nas/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
@@ -79,7 +79,7 @@ curl -X POST http://gateway-host:8000/api/v1/ingest/events \
 ## Step 4: Run 完了を記録（任意）
 
 ```bash
-curl -X PATCH http://gateway-host:8000/api/v1/runs/$RUN_ID \
+curl -X PATCH http://gateway.arigato-nas/api/v1/runs/$RUN_ID \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
@@ -107,7 +107,7 @@ curl -X PATCH http://gateway-host:8000/api/v1/runs/$RUN_ID \
 ## ヘルスチェック確認
 
 ```bash
-curl http://gateway-host:8000/healthz
+curl http://gateway.arigato-nas/healthz
 # => {"status":"ok"}
 ```
 
