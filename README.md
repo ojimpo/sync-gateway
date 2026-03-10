@@ -80,7 +80,7 @@ curl -X POST http://localhost:18000/api/v1/sources/register \
 curl -X POST http://localhost:18000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
   -d '{
-    "records": [{'
+    "records": [{
       "source_slug": "bookmeter",
       "record_type": "book",
       "title": "海辺のカフカ",
