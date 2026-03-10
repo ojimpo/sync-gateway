@@ -22,6 +22,10 @@ OpenClaw Browser Relay (外部)
 
 詳細は [docs/architecture.md](docs/architecture.md) を参照。
 
+運用向け補足:
+- Pi視点メモ: [docs/pi-notes.md](docs/pi-notes.md)
+- OpenClaw連携手順: [docs/openclaw-readme.md](docs/openclaw-readme.md)
+
 ## クイックスタート
 
 ### Docker Compose（推奨）
