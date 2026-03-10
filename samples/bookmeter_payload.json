@@ -1,0 +1,52 @@
+{
+  "records": [
+    {
+      "source_slug": "bookmeter",
+      "external_id": "bm_book_9784167919535",
+      "record_type": "book",
+      "title": "海辺のカフカ",
+      "author": "村上春樹",
+      "rating": 4.5,
+      "status": "read",
+      "event_date": "2026-02-14T00:00:00+09:00",
+      "payload": {
+        "isbn": "9784167919535",
+        "publisher": "文藝春秋",
+        "pages": 1152,
+        "review": "久々に読んだ村上作品。不思議な世界観に引き込まれた。"
+      }
+    },
+    {
+      "source_slug": "bookmeter",
+      "external_id": "bm_book_9784101092058",
+      "record_type": "book",
+      "title": "ノルウェイの森",
+      "author": "村上春樹",
+      "rating": 4.0,
+      "status": "read",
+      "event_date": "2026-01-20T00:00:00+09:00",
+      "payload": {
+        "isbn": "9784101092058",
+        "publisher": "講談社",
+        "pages": 512,
+        "review": "切ない青春物語。何度読んでも心に刺さる。"
+      }
+    },
+    {
+      "source_slug": "bookmeter",
+      "external_id": "bm_book_9784041058497",
+      "record_type": "book",
+      "title": "騎士団長殺し",
+      "author": "村上春樹",
+      "rating": 3.5,
+      "status": "reading",
+      "event_date": "2026-03-01T00:00:00+09:00",
+      "payload": {
+        "isbn": "9784041058497",
+        "publisher": "新潮社",
+        "pages": 900,
+        "review": null
+      }
+    }
+  ]
+}

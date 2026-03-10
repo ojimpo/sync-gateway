@@ -1,0 +1,17 @@
+{
+  "name": "arigato-gateway",
+  "version": "0.1.0",
+  "description": "Scraping middleware API for 読書メーター, Filmarks, and more",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "lint": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "records": [
+    {
+      "source_slug": "filmarks",
+      "external_id": "fm_movie_dune2",
+      "record_type": "movie",
+      "title": "デューン 砂の惑星 PART2",
+      "author": "Denis Villeneuve",
+      "rating": 4.8,
+      "status": "watched",
+      "event_date": "2026-02-28T19:30:00+09:00",
+      "payload": {
+        "tmdb_id": 693134,
+        "genre": ["SF", "アドベンチャー"],
+        "runtime_min": 166,
+        "review": "映像美と音響が圧倒的。IMAXで観て正解だった。"
+      }
+    },
+    {
+      "source_slug": "filmarks",
+      "external_id": "fm_movie_oppenheimer",
+      "record_type": "movie",
+      "title": "オッペンハイマー",
+      "author": "Christopher Nolan",
+      "rating": 4.5,
+      "status": "watched",
+      "event_date": "2026-02-10T14:00:00+09:00",
+      "payload": {
+        "tmdb_id": 872585,
+        "genre": ["伝記", "歴史", "ドラマ"],
+        "runtime_min": 180,
+        "review": "3時間があっという間。キリアン・マーフィーの演技が圧巻。"
+      }
+    },
+    {
+      "source_slug": "filmarks",
+      "external_id": "fm_movie_perfect_days",
+      "record_type": "movie",
+      "title": "PERFECT DAYS",
+      "author": "Wim Wenders",
+      "rating": 5.0,
+      "status": "watched",
+      "event_date": "2026-01-05T11:00:00+09:00",
+      "payload": {
+        "tmdb_id": 976893,
+        "genre": ["ドラマ"],
+        "runtime_min": 124,
+        "review": "東京の静けさと、役所広司の存在感に打ちのめされた。今年一番の映画。"
+      }
+    }
+  ]
+}

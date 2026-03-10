@@ -1,0 +1,19 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "18000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DB_PATH: /app/data/arigato.db
+      FRONTEND_ORIGIN: http://localhost:15173
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "15173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
