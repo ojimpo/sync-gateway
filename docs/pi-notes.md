@@ -16,6 +16,15 @@ arigato-gateway は「スクレイピング実行機」ではなく、以下に�
 
 ## 2. Browser Relay 前提の実務フロー（推奨）
 
+### OpenClaw即応テンプレ（Pi自身が毎回使う）
+
+- health確認: `GET /healthz`
+- source確認: `GET /api/v1/sources`
+- 未登録なら登録: `POST /api/v1/sources/register`
+- 正規化して投入: `POST /api/v1/ingest/events`
+- 反映確認: `GET /api/v1/records?limit=20`
+
+
 1. Browser Relay で対象サイトにアクセス
 2. 必要データを抽出（タイトル、著者/監督、評価、日時、URLなど）
 3. 正規化JSONを作成

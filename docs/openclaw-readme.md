@@ -3,6 +3,27 @@
 このドキュメントは、OpenClaw（Pi）から arigato-gateway を使って
 読書メーター / Filmarks などのデータを投入する手順をまとめたものです。
 
+## OpenClaw向け最短手順（これだけで投入可能）
+
+1. `GET http://<server-ip>:18000/healthz` が `ok` を返すことを確認
+2. `bookmeter` / `filmarks` を `/api/v1/sources/register` で登録（初回のみ）
+3. Browser Relayで取得した結果を下の ingest フォーマットで `/api/v1/ingest/events` にPOST
+4. `/api/v1/records` と管理画面で反映確認
+
+### OpenClawへ渡すコピペ用プロンプト
+
+```text
+Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ投入してください。
+- Gateway API: http://<server-ip>:18000
+- 事前確認: GET /healthz
+- source登録(初回): POST /api/v1/sources/register (bookmeter, filmarks)
+- 投入先: POST /api/v1/ingest/events
+- 取得失敗項目は null で可
+- 投入後: GET /api/v1/records?limit=20 で確認
+```
+
+---
+
 ## 前提
 
 - arigato-gateway が起動済み
