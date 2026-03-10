@@ -1,6 +1,6 @@
 # OpenClaw連携README（arigato-gateway向け）
 
-このドキュメントは、OpenClaw（Pi）から arigato-gateway を使って
+このドキュメントは、OpenClaw から arigato-gateway を使って
 読書メーター / Filmarks などのデータを投入する手順をまとめたものです。
 
 ## OpenClaw向け最短手順（これだけで投入可能）

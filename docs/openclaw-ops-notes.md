@@ -1,6 +1,6 @@
-# Pi視点メモ（運用上の注意）
+# OpenClaw運用メモ（実運用上の注意）
 
-このメモは、**Pi（OpenClawエージェント）として実運用するときに事故りやすい点**を先回りでまとめたもの。
+このメモは、**OpenClawエージェント運用で事故りやすい点**を先回りでまとめたもの。
 
 ## 1. このサービスの責務を守る
 
@@ -16,7 +16,7 @@ arigato-gateway は「スクレイピング実行機」ではなく、以下に�
 
 ## 2. Browser Relay 前提の実務フロー（推奨）
 
-### OpenClaw即応テンプレ（Pi自身が毎回使う）
+### OpenClaw即応テンプレ（毎回使う）
 
 - health確認: `GET /healthz`
 - source確認: `GET /api/v1/sources`
