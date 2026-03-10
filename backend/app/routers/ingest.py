@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from ..auth import require_api_key
 from ..database import get_db
 from ..models import Source, Record, Run, IngestError
 from ..schemas import IngestBatch, IngestRecord, IngestResponse
@@ -36,7 +37,7 @@ def _ingest_one(rec: IngestRecord, db: Session) -> tuple[bool, str]:
 
 
 @router.post("/events", response_model=IngestResponse, status_code=202)
-def ingest_events(body: IngestBatch, db: Session = Depends(get_db)):
+def ingest_events(body: IngestBatch, db: Session = Depends(get_db), _key: str = Depends(require_api_key)):
     accepted = 0
     failed = 0
     errors: list[str] = []

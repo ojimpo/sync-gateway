@@ -32,6 +32,7 @@ OpenClaw Browser Relay (外部)
 
 ```bash
 cp .env.example .env
+# .env に GATEWAY_API_KEY を設定（設定しなければ認証なしで動作）
 mkdir -p data
 docker compose up --build
 ```
@@ -66,19 +67,35 @@ cd backend
 python seed.py
 ```
 
+## 認証
+
+書き込み系エンドポイント（POST / PATCH）は Bearer トークン認証で保護されている。
+`.env` に `GATEWAY_API_KEY` を設定すると有効になる。
+
+```bash
+# .env
+GATEWAY_API_KEY=your-secret-key-here
+```
+
+- **認証が必要**: `POST /api/v1/ingest/events`, `POST /api/v1/sources/register`, `POST /api/v1/runs`, `PATCH /api/v1/runs/{id}`
+- **認証不要**: `GET /healthz`, `GET /api/v1/sources`, `GET /api/v1/runs`, `GET /api/v1/records`（管理画面が使用するため）
+- `GATEWAY_API_KEY` が空または未設定の場合は認証なしで動作（開発環境用）
+
 ## curl サンプル（ingest）
 
-ソースを先に登録してから ingest する:
+ソースを先に登録してから ingest する。`GATEWAY_API_KEY` を設定している場合は `-H 'Authorization: Bearer <key>'` を付ける。
 
 ```bash
 # 1. ソース登録
 curl -X POST http://localhost:18000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-secret-key-here' \
   -d '{"slug":"bookmeter","display_name":"読書メーター"}'
 
 # 2. レコード投入
 curl -X POST http://localhost:18000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-secret-key-here' \
   -d '{
     "records": [{
       "source_slug": "bookmeter",
@@ -100,6 +117,7 @@ arigato-gateway/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py          # FastAPI app, CORS, router mount
+│   │   ├── auth.py          # Bearer token 認証
 │   │   ├── database.py      # SQLAlchemy engine / session
 │   │   ├── models.py        # ORM: sources, runs, records, ingest_errors
 │   │   ├── schemas.py       # Pydantic I/O models

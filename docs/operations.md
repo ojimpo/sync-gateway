@@ -4,6 +4,17 @@
 
 OpenClaw Browser Relay（ラズパイ等のエッジノードで動作するブラウザ自動化ツール）が定期的にスクレイピングを実行し、正規化したデータを arigato-gateway に HTTP で送信する。
 
+## 認証
+
+書き込み系エンドポイント（POST / PATCH）は Bearer トークン認証で保護されている。
+すべての書き込みリクエストに以下のヘッダーを付与すること:
+
+```
+Authorization: Bearer <GATEWAY_API_KEY>
+```
+
+`GATEWAY_API_KEY` はサーバー側の環境変数で設定する。GET 系は認証不要。
+
 ## 標準的なフロー
 
 ```
@@ -19,6 +30,7 @@ Run ID を使わず ingest のみ呼ぶ簡易モードでも動作する。
 ```bash
 curl -X POST http://gateway-host:8000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
     "slug": "bookmeter",
     "display_name": "読書メーター",
@@ -33,6 +45,7 @@ slug が既に登録されている場合は 409 が返るので、冪等な初�
 ```bash
 RUN_ID=$(curl -s -X POST http://gateway-host:8000/api/v1/runs \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"source_id": 1}' | jq '.id')
 ```
 
@@ -41,6 +54,7 @@ RUN_ID=$(curl -s -X POST http://gateway-host:8000/api/v1/runs \
 ```bash
 curl -X POST http://gateway-host:8000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
     "records": [
       {
@@ -67,6 +81,7 @@ curl -X POST http://gateway-host:8000/api/v1/ingest/events \
 ```bash
 curl -X PATCH http://gateway-host:8000/api/v1/runs/$RUN_ID \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
     "status": "success",
     "records_ingested": 42,
@@ -79,6 +94,7 @@ curl -X PATCH http://gateway-host:8000/api/v1/runs/$RUN_ID \
 ## エラーハンドリング方針
 
 - ネットワークエラー: リトライを 3 回まで実施（指数バックオフ）
+- 401: API キーが無効または未指定。`Authorization: Bearer <key>` ヘッダーを確認。
 - 400/422: ペイロードのバリデーション修正が必要。自動リトライ不可。
 - 500: ゲートウェイ側の問題。アラートを出して手動調査。
 - source_slug 未登録: ingest はスキップして続行。別途 register エンドポイントを呼ぶ。

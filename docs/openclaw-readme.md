@@ -15,11 +15,12 @@
 ```text
 Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ投入してください。
 - Gateway API: http://<server-ip>:18000
-- 事前確認: GET /healthz
+- API認証: すべての POST/PATCH リクエストに Authorization: Bearer <APIキー> ヘッダーを付けること
+- 事前確認: GET /healthz（認証不要）
 - source登録(初回): POST /api/v1/sources/register (bookmeter, filmarks)
 - 投入先: POST /api/v1/ingest/events
 - 取得失敗項目は null で可
-- 投入後: GET /api/v1/records?limit=20 で確認
+- 投入後: GET /api/v1/records?limit=20 で確認（認証不要）
 ```
 
 ---
@@ -31,6 +32,10 @@ Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ�
   - Admin: `http://<server-ip>:15173`
 - OpenClaw側で Browser Relay が利用可能
 - スクレイピングは OpenClaw 側で実施し、gatewayには正規化データを送る
+- **API認証**: 書き込み系リクエスト（POST / PATCH）には Bearer トークンが必要。すべてのリクエストに以下のヘッダーを付与すること:
+  ```
+  Authorization: Bearer <GATEWAY_API_KEY>
+  ```
 
 ---
 
@@ -41,6 +46,7 @@ Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ�
 ```bash
 curl -X POST http://<server-ip>:18000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"slug":"bookmeter","display_name":"読書メーター"}'
 ```
 
@@ -49,6 +55,7 @@ curl -X POST http://<server-ip>:18000/api/v1/sources/register \
 ```bash
 curl -X POST http://<server-ip>:18000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{"slug":"filmarks","display_name":"Filmarks"}'
 ```
 
@@ -59,6 +66,7 @@ curl -X POST http://<server-ip>:18000/api/v1/sources/register \
 ```bash
 curl -X POST http://<server-ip>:18000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
     "records": [
       {
@@ -113,14 +121,11 @@ curl http://<server-ip>:18000/api/v1/records?limit=20
 
 ---
 
-## 6) セキュリティ運用（現状）
+## 6) セキュリティ運用
 
 - 内部ネットワーク限定
-- 認証なし（MVP）
-- 外部公開しない
-
-将来外部公開する場合は、最低でも以下を追加:
-- API認証（token/JWT）
-- 管理UI認証
-- 監査ログ
-- レート制限
+- **書き込み系 API は Bearer トークン認証で保護**
+  - `GATEWAY_API_KEY` 環境変数で設定
+  - リクエストヘッダー: `Authorization: Bearer <キー値>`
+- GET 系（`/healthz`, `/api/v1/sources`, `/api/v1/records` 等）は認証不要
+- `GATEWAY_API_KEY` が未設定の場合は認証なしで動作（開発用）

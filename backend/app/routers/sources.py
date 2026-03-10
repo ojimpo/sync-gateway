@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from ..auth import require_api_key
 from ..database import get_db
 from ..models import Source
 from ..schemas import SourceCreate, SourceOut
@@ -13,7 +14,7 @@ def list_sources(db: Session = Depends(get_db)):
 
 
 @router.post("/register", response_model=SourceOut, status_code=201)
-def register_source(body: SourceCreate, db: Session = Depends(get_db)):
+def register_source(body: SourceCreate, db: Session = Depends(get_db), _key: str = Depends(require_api_key)):
     existing = db.query(Source).filter(Source.slug == body.slug).first()
     if existing:
         raise HTTPException(status_code=409, detail=f"Source '{body.slug}' already registered")

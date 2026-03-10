@@ -31,9 +31,9 @@ class RunCreate(BaseModel):
 
 
 class RunPatch(BaseModel):
-    status: str = Field(..., pattern=r"^(success|failed)$")
-    records_ingested: int = 0
-    records_failed: int = 0
+    status: str | None = Field(None, pattern=r"^(success|failed)$")
+    records_ingested: int | None = None
+    records_failed: int | None = None
     error_message: str | None = None
 
 
