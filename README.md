@@ -32,9 +32,9 @@ mkdir -p data
 docker compose up --build
 ```
 
-- 管理画面: http://localhost:5173
-- API: http://localhost:8000
-- OpenAPI: http://localhost:8000/docs
+- 管理画面: http://localhost:15173
+- API: http://localhost:18000
+- OpenAPI: http://localhost:18000/docs
 
 ### ローカル開発
 
@@ -68,15 +68,15 @@ python seed.py
 
 ```bash
 # 1. ソース登録
-curl -X POST http://localhost:8000/api/v1/sources/register \
+curl -X POST http://localhost:18000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
   -d '{"slug":"bookmeter","display_name":"読書メーター"}'
 
 # 2. レコード投入
-curl -X POST http://localhost:8000/api/v1/ingest/events \
+curl -X POST http://localhost:18000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
   -d '{
-    "records": [{
+    "records": [{'
       "source_slug": "bookmeter",
       "record_type": "book",
       "title": "海辺のカフカ",
