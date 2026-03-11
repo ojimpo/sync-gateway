@@ -1,38 +1,45 @@
-# arigato-gateway
+# sync-gateway
 
-読書メーター・Filmarks などの外部サービスから OpenClaw Browser Relay がスクレイピングした記録データを受け取り、保存・閲覧するためのミドルウェア API と管理ダッシュボード。
+公式 API のない外部サービス（読書メーター・Filmarks など）から収集したデータを受け取り、保存・閲覧するためのミドルウェア API と管理ダッシュボード。データ収集エージェントとして [OpenClaw Browser Relay](https://github.com/kouki-dan/openclaw) を使用している。
 
 ## 作った背景
 
-読書メーター・Filmarks には公式 API がない。自分の読書・鑑賞データは自分で手元に持ちたい。しかし、スクレイピングロジックをデータ保存ロジックと混在させると保守が辛い。そこで両者を分離し、スクレイピングは OpenClaw Browser Relay に任せ、このゲートウェイは**正規化ペイロードを受け取って保存するだけ**に集中する設計にした。
+読書メーター・Filmarks には公式 API がない。自分の読書・鑑賞データは自分で手元に置きたい。しかし、データ収集ロジックと保存ロジックを混在させると保守が辛い。そこで両者を完全に分離した。
+
+- データ収集・正規化は **OpenClaw Browser Relay**（外部エージェント）が担当
+- このゲートウェイは**正規化済みペイロードを受け取って保存するだけ**に集中
+- API は汎用的な設計で、今後どのサービスからのデータでも受け入れ可能
 
 ## アーキテクチャ
 
 ```
-OpenClaw Browser Relay (外部)
+OpenClaw Browser Relay（外部エージェント）
         │
-        │ POST /api/v1/ingest/events
+        │ POST /api/v1/ingest/events（正規化 JSON）
         ▼
- arigato-gateway / backend (FastAPI + SQLite)
+  sync-gateway / backend
+  FastAPI + SQLAlchemy + SQLite
         │
         │ REST JSON
         ▼
- arigato-gateway / frontend (React + Vite → nginx)
+  sync-gateway / frontend
+  React + Vite → nginx
 ```
 
 詳細は [docs/architecture.md](docs/architecture.md) を参照。
 
-運用向け補足:
-- OpenClaw運用メモ: [docs/openclaw-ops-notes.md](docs/openclaw-ops-notes.md)
-- OpenClaw連携手順: [docs/openclaw-readme.md](docs/openclaw-readme.md)
+### データモデル設計の肝
+
+- **sources**: サービスごとに `slug`（例: `bookmeter`, `filmarks`）で識別
+- **runs**: 同期セッション単位の記録（`processed` / `created` / `updated` / `failed` でカウント分解）
+- **records**: `external_id` を持つ場合は upsert で重複防止。`payload` に JSON 拡張フィールドを保持
+- **ingest_errors**: バッチ内の部分失敗ログ（全件ロールバックせず継続）
 
 ## クイックスタート
 
-### Docker Compose（推奨）
-
 ```bash
 cp .env.example .env
-# .env に GATEWAY_API_KEY を設定（設定しなければ認証なしで動作）
+# .env に GATEWAY_API_KEY を設定（空のままでも認証なしで動作）
 mkdir -p data
 docker compose up --build
 ```
@@ -49,7 +56,7 @@ docker compose up --build
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-DB_PATH=../data/arigato.db uvicorn app.main:app --reload
+DB_PATH=../data/sync-gateway.db uvicorn app.main:app --reload
 ```
 
 **Frontend**
@@ -60,7 +67,14 @@ npm install
 npm run dev
 ```
 
-### シードデータ投入
+**DBマイグレーション**
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+**シードデータ投入**
 
 ```bash
 cd backend
@@ -69,36 +83,46 @@ python seed.py
 
 ## 認証
 
-書き込み系エンドポイント（POST / PATCH）は Bearer トークン認証で保護されている。
-`.env` に `GATEWAY_API_KEY` を設定すると有効になる。
+書き込み系エンドポイント（POST / PATCH）は Bearer トークンで保護。
 
 ```bash
 # .env
 GATEWAY_API_KEY=your-secret-key-here
 ```
 
-- **認証が必要**: `POST /api/v1/ingest/events`, `POST /api/v1/sources/register`, `POST /api/v1/runs`, `PATCH /api/v1/runs/{id}`
-- **認証不要**: `GET /healthz`, `GET /api/v1/sources`, `GET /api/v1/runs`, `GET /api/v1/records`（管理画面が使用するため）
-- `GATEWAY_API_KEY` が空または未設定の場合は認証なしで動作（開発環境用）
+| エンドポイント | 認証 |
+|---|---|
+| `POST /api/v1/ingest/events` | 必要 |
+| `POST /api/v1/sources/register` | 必要 |
+| `POST /api/v1/runs`, `PATCH /api/v1/runs/{id}` | 必要 |
+| `GET /healthz`, `GET /api/v1/sources`, `GET /api/v1/runs`, `GET /api/v1/records` | 不要 |
 
-## curl サンプル（ingest）
+`GATEWAY_API_KEY` が空または未設定の場合は認証なし（開発環境用）。
 
-ソースを先に登録してから ingest する。`GATEWAY_API_KEY` を設定している場合は `-H 'Authorization: Bearer <key>'` を付ける。
+## curl サンプル
 
 ```bash
-# 1. ソース登録
+# ソース登録（初回のみ）
 curl -X POST http://localhost:18000/api/v1/sources/register \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer your-secret-key-here' \
   -d '{"slug":"bookmeter","display_name":"読書メーター"}'
 
-# 2. レコード投入
+# Run 開始（任意）
+RUN_ID=$(curl -s -X POST http://localhost:18000/api/v1/runs \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-secret-key-here' \
+  -d '{"source_id": 1}' | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# データ投入
 curl -X POST http://localhost:18000/api/v1/ingest/events \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer your-secret-key-here' \
   -d '{
     "records": [{
       "source_slug": "bookmeter",
+      "run_id": '"$RUN_ID"',
+      "external_id": "bm_book_12345",
       "record_type": "book",
       "title": "海辺のカフカ",
       "author": "村上春樹",
@@ -108,12 +132,39 @@ curl -X POST http://localhost:18000/api/v1/ingest/events \
       "payload": {"isbn": "9784167919535"}
     }]
   }'
+
+# Run 完了を記録（任意）
+curl -X PATCH http://localhost:18000/api/v1/runs/$RUN_ID \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-secret-key-here' \
+  -d '{"status": "success"}'
 ```
+
+`external_id` が同じレコードを再投入すると upsert（差分更新）される。`payload` フィールドはマージされる。
+
+## Run 統計カラム
+
+| カラム | 内容 |
+|---|---|
+| `records_processed` | 試行総数（created + updated + failed） |
+| `records_created` | 新規 insert 成功件数 |
+| `records_updated` | upsert 更新成功件数 |
+| `records_failed` | エラー件数（unknown source / 例外） |
+
+## 初回運用チェック（スクリプト）
+
+```bash
+./scripts/gateway_first_run_check.sh
+# または
+./scripts/gateway_first_run_check.sh http://<your-host> samples/bookmeter_first_run_payload.json
+```
+
+前提: `.env` に `GATEWAY_API_KEY` が設定済み・API が起動済み。
 
 ## ファイル構成
 
 ```
-arigato-gateway/
+sync-gateway/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py          # FastAPI app, CORS, router mount
@@ -127,6 +178,7 @@ arigato-gateway/
 │   │       ├── runs.py
 │   │       ├── ingest.py
 │   │       └── records.py
+│   ├── migrations/          # Alembic マイグレーション
 │   ├── seed.py
 │   ├── requirements.txt
 │   └── Dockerfile
@@ -142,16 +194,22 @@ arigato-gateway/
 │   ├── Dockerfile
 │   └── nginx.conf
 ├── samples/
-│   ├── bookmeter_payload.json
-│   └── filmarks_payload.json
-├── data/                    # SQLite (gitignored)
+│   └── bookmeter_first_run_payload.json
+├── scripts/
+│   └── gateway_first_run_check.sh
+├── data/                    # SQLite（gitignore 済み）
 ├── docs/
 │   ├── architecture.md
 │   ├── api-contract.md
 │   ├── operations.md
-│   └── meetings/
-│       ├── 2026-03-10-minutes.md
-│       └── 2026-03-10-transcript.md
+│   └── decisions.md
 ├── docker-compose.yml
 └── .env.example
 ```
+
+## 将来の展望
+
+- 新しいサービスへの対応：source slug を追加し、OpenClaw 側に抽出ロジックを書くだけ
+- Webhook 通知（同期完了時に Discord 等へ）
+- CSV / JSON エクスポートエンドポイント
+- 監査ログの強化・Tailscale/WireGuard による境界防御

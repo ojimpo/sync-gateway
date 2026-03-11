@@ -1,5 +1,5 @@
 {
-  "name": "arigato-gateway-admin",
+  "name": "sync-gateway-admin",
   "private": true,
   "version": "0.1.0",
   "type": "module",

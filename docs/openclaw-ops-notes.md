@@ -4,7 +4,7 @@
 
 ## 1. このサービスの責務を守る
 
-arigato-gateway は「スクレイピング実行機」ではなく、以下に責務を限定する。
+sync-gateway は「スクレイピング実行機」ではなく、以下に責務を限定する。
 
 - 受け口 API（ingest）
 - source/run/records の保存
@@ -78,7 +78,7 @@ slugを途中で変えると分析側・連携側が壊れやすい。変更す�
 
 最終的には health-ojimpo 側が以下を定期実行できればよい。
 
-- arigato-gateway から `records` を取得
+- sync-gateway から `records` を取得
 - ソース別に集計
 - 既存スコアリングへ取り込み
 

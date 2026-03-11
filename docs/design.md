@@ -1,10 +1,13 @@
-# arigato-gateway アーキテクチャ設計書
+# sync-gateway アーキテクチャ設計書（v1 アーカイブ）
+
+> **注意**: このドキュメントは v1（Bun + Hono + TypeScript）時代の設計書です。
+> 現在の v2 実装（FastAPI + Python + SQLite）については [architecture.md](architecture.md) を参照してください。
+
+---
 
 ## プロジェクト概要と動機
 
 読書メーター（bookmeter.com）や Filmarks（filmarks.com）などの外部サービスには、公式 API が存在しない、またはアクセスが制限されている。個人の読書・映画鑑賞履歴を自分のデータとして手元に持ちたい、あるいは他のサービスと連携させたいというニーズに対応するため、本プロジェクトを立ち上げた。
-
-`arigato-gateway` は「ありがとうゲートウェイ」の略称でもあり、外部サービスへのスクレイピングを中間層として吸収し、統一された REST API として提供するミドルウェアである。
 
 ---
 

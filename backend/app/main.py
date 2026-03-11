@@ -8,8 +8,8 @@ from .routers import health, sources, runs, ingest, records
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="arigato-gateway",
-    description="Middleware API for scraped data ingestion (bookmeter, filmarks, ...)",
+    title="sync-gateway",
+    description="Middleware API for personal data ingestion (bookmeter, filmarks, ...)",
     version="0.1.0",
 )
 

@@ -1,6 +1,10 @@
 # API Contract
 
-Base URL: `http://<host>:8000`
+Base URL: `http://<host>`（docker-compose の nginx 経由）
+
+- 例（ローカル）: `http://localhost:18000`
+- 例（LAN）: `http://gateway.arigato-nas`
+
 OpenAPI UI: `GET /docs`
 OpenAPI JSON: `GET /openapi.json`
 
@@ -71,7 +75,9 @@ run 履歴を started_at 降順で返す。
     "status": "success",        // running | success | failed
     "started_at": "2026-03-10T01:00:00Z",
     "finished_at": "2026-03-10T01:00:05Z",
-    "records_ingested": 42,
+    "records_processed": 42,
+    "records_created": 40,
+    "records_updated": 2,
     "records_failed": 0,
     "error_message": null
   }
@@ -95,13 +101,12 @@ run を完了 or 失敗させる。
 ```json
 {
   "status": "success",        // success | failed
-  "records_ingested": 42,
   "records_failed": 0,
   "error_message": null
 }
 ```
 
-**Response** `200 OK` — RunOut
+**Response** `200 OK` — RunOut（統計カラムは ingest 時に自動更新されるため、PATCH では `records_*` を指定不要）
 
 ---
 

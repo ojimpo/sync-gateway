@@ -21,7 +21,9 @@ export interface Run {
   status: "running" | "success" | "failed";
   started_at: string;
   finished_at: string | null;
-  records_ingested: number;
+  records_processed: number;
+  records_created: number;
+  records_updated: number;
   records_failed: number;
   error_message: string | null;
 }

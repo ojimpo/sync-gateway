@@ -35,8 +35,6 @@ def finish_run(run_id: int, body: RunPatch, db: Session = Depends(get_db), _key:
     if "status" in provided:
         run.status = body.status
         run.finished_at = datetime.now(timezone.utc)
-    if "records_ingested" in provided:
-        run.records_ingested = body.records_ingested
     if "records_failed" in provided:
         run.records_failed = body.records_failed
     if "error_message" in provided:

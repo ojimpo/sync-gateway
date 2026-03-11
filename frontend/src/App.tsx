@@ -25,7 +25,7 @@ export default function App() {
       }}>
         <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--accent)", letterSpacing: "-0.3px" }}>
-            arigato-gateway
+            sync-gateway
           </div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>admin console</div>
         </div>

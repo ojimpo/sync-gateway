@@ -31,7 +31,7 @@ export default function Overview() {
     Promise.all([api.runs(200), api.sources(), api.health()]).then(([runs, srcs, h]) => {
       const finished = runs.filter(r => r.status !== "running");
       const succeeded = runs.filter(r => r.status === "success");
-      const total = runs.reduce((s, r) => s + r.records_ingested, 0);
+      const total = runs.reduce((s, r) => s + r.records_processed, 0);
       setStats({
         totalRuns: runs.length,
         successRate: finished.length ? `${Math.round((succeeded.length / finished.length) * 100)}%` : "—",
@@ -73,7 +73,7 @@ export default function Overview() {
             `#${r.id}`,
             sourceMap[r.source_id]?.display_name ?? r.source_id,
             <StatusBadge status={r.status} />,
-            r.records_ingested,
+            r.records_processed,
             r.finished_at ? dur(r.started_at, r.finished_at) : "running…",
           ])}
         />

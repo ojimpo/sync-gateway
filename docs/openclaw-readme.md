@@ -1,6 +1,6 @@
-# OpenClaw連携README（arigato-gateway向け）
+# OpenClaw連携README（sync-gateway向け）
 
-このドキュメントは、OpenClaw から arigato-gateway を使って
+このドキュメントは、OpenClaw から sync-gateway を使って
 読書メーター / Filmarks などのデータを投入する手順をまとめたものです。
 
 ## OpenClaw向け最短手順（これだけで投入可能）
@@ -13,7 +13,7 @@
 ### OpenClawへ渡すコピペ用プロンプト
 
 ```text
-Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ投入してください。
+Browser Relayで対象サイトからデータを取得し、sync-gatewayへ投入してください。
 - Gateway API: http://gateway.arigato-nas
 - API認証: すべての POST/PATCH リクエストに Authorization: Bearer <APIキー> ヘッダーを付けること
 - 事前確認: GET /healthz（認証不要）
@@ -27,10 +27,10 @@ Browser Relayで対象サイトからデータを取得し、arigato-gatewayへ�
 
 ## 前提
 
-- arigato-gateway が起動済み
+- sync-gateway が起動済み
   - API / Admin: `http://gateway.arigato-nas`
 - OpenClaw側で Browser Relay が利用可能
-- スクレイピングは OpenClaw 側で実施し、gatewayには正規化データを送る
+- データ取得は OpenClaw 側で実施し、gatewayには正規化データを送る
 - **API認証**: 書き込み系リクエスト（POST / PATCH）には Bearer トークンが必要。すべてのリクエストに以下のヘッダーを付与すること:
   ```
   Authorization: Bearer <GATEWAY_API_KEY>

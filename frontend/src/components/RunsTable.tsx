@@ -19,12 +19,14 @@ export default function RunsTable() {
     <>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Runs</h1>
       <Table
-        cols={["ID", "Source", "Status", "Ingested", "Failed", "Duration", "Started"]}
+        cols={["ID", "Source", "Status", "Processed", "Created", "Updated", "Failed", "Duration", "Started"]}
         rows={runs.map(r => [
           `#${r.id}`,
           sourceMap[r.source_id]?.display_name ?? `src:${r.source_id}`,
           <StatusBadge status={r.status} />,
-          r.records_ingested,
+          r.records_processed,
+          r.records_created,
+          r.records_updated,
           r.records_failed > 0
             ? <span style={{ color: "var(--red)" }}>{r.records_failed}</span>
             : "0",

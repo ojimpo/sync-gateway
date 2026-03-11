@@ -32,7 +32,6 @@ class RunCreate(BaseModel):
 
 class RunPatch(BaseModel):
     status: str | None = Field(None, pattern=r"^(success|failed)$")
-    records_ingested: int | None = None
     records_failed: int | None = None
     error_message: str | None = None
 
@@ -43,7 +42,9 @@ class RunOut(BaseModel):
     status: str
     started_at: datetime
     finished_at: datetime | None
-    records_ingested: int
+    records_processed: int
+    records_created: int
+    records_updated: int
     records_failed: int
     error_message: str | None
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-arigato-gateway は 3 層で構成される。
+sync-gateway は 3 層で構成される。
 
 ```
 [ OpenClaw Browser Relay ]
@@ -43,11 +43,11 @@ slug           source_id (FK)   source_id (FK)   run_id (FK)
 display_name   status           run_id (FK)      raw_payload (JSON)
 description    started_at       external_id      error_message
 active         finished_at      record_type      occurred_at
-created_at     records_ingested title
-               records_failed   author
-               error_message    rating
-                                status
-                                event_date
+created_at     records_processed title
+               records_created  author
+               records_updated  rating
+               records_failed   status
+               error_message    event_date
                                 payload (JSON)
                                 ingested_at
 ```
@@ -77,7 +77,9 @@ nginx コンテナが React の静的ビルドをサーブしつつ `/api/*` と
 
 ## セキュリティ
 
-- 内部 LAN 専用。認証なし（MVP）
+- 内部 LAN 専用
+- **書き込み系 API（POST/PATCH）は Bearer トークン認証あり**（`GATEWAY_API_KEY`）
+- GET 系 API（health/sources/runs/records）は管理画面用途のため認証なし
 - CORS で frontend origin のみ許可
 - シークレットのコミットなし（`.env.example` のみ）
-- 将来: Bearer トークン認証、または Tailscale/WireGuard による境界防御
+- 将来: 監査ログ強化、Tailscale/WireGuard による境界防御

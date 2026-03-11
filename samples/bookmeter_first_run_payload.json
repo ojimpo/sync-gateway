@@ -1,0 +1,18 @@
+{
+  "records": [
+    {
+      "source_slug": "bookmeter",
+      "external_id": "bm_sample_001",
+      "record_type": "book",
+      "title": "サンプル: 初回取り込み確認",
+      "author": "sync-gateway",
+      "rating": 4.0,
+      "status": "read",
+      "event_date": "2026-03-10T00:00:00+09:00",
+      "payload": {
+        "source_url": "https://bookmeter.com/",
+        "note": "first-run smoke test"
+      }
+    }
+  ]
+}

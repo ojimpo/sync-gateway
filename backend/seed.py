@@ -54,7 +54,8 @@ def seed():
 
             run = Run(source_id=source.id, status="success",
                       finished_at=datetime.now(timezone.utc),
-                      records_ingested=len(records_list))
+                      records_processed=len(records_list),
+                      records_created=len(records_list))
             db.add(run)
             db.flush()
 

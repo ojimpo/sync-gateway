@@ -1,8 +1,8 @@
-# Operations Guide — OpenClaw → arigato-gateway
+# Operations Guide — OpenClaw → sync-gateway
 
 ## 概要
 
-OpenClaw Browser Relay（ラズパイ等のエッジノードで動作するブラウザ自動化ツール）が定期的にスクレイピングを実行し、正規化したデータを arigato-gateway に HTTP で送信する。
+OpenClaw Browser Relay（ラズパイ等のエッジノードで動作するブラウザ自動化ツール）が定期的にデータを収集し、正規化したデータを sync-gateway に HTTP で送信する。
 
 ## 認証
 
@@ -34,7 +34,7 @@ curl -X POST http://gateway.arigato-nas/api/v1/sources/register \
   -d '{
     "slug": "bookmeter",
     "display_name": "読書メーター",
-    "description": "bookmeter.com からスクレイピングした読書記録"
+    "description": "bookmeter.com から収集した読書記録"
   }'
 ```
 
@@ -84,7 +84,6 @@ curl -X PATCH http://gateway.arigato-nas/api/v1/runs/$RUN_ID \
   -H 'Authorization: Bearer <GATEWAY_API_KEY>' \
   -d '{
     "status": "success",
-    "records_ingested": 42,
     "records_failed": 0
   }'
 ```
