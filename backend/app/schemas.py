@@ -20,6 +20,8 @@ class SourceOut(BaseModel):
     description: str | None
     active: bool
     created_at: datetime
+    last_update_at: datetime | None = None
+    representative_url: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -88,5 +90,6 @@ class RecordOut(BaseModel):
     status: str | None
     event_date: datetime | None
     ingested_at: datetime
+    payload: dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"from_attributes": True}
