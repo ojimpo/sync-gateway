@@ -13,3 +13,7 @@ __pycache__/
 *.py[cod]
 .venv/
 *.egg-info/
+
+# 同期スクリプトの実行時成果物
+scripts/logs/
+scripts/state/
