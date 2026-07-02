@@ -5,7 +5,6 @@ import json
 import random
 import re
 import time
-from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -17,6 +16,7 @@ from sync_common import (
     gateway_request,
     iso_date_jp as iso_date,
     load_api_key,
+    now_utc_iso,
     strip_tags,
 )
 
@@ -107,7 +107,7 @@ def parse_read_page(html_text: str, base_url: str):
                 "pages": pages,
                 "cover_image_url": cover_image_url,
                 "raw_date_text": date_txt,
-                "collected_at": datetime.utcnow().isoformat() + "Z",
+                "collected_at": now_utc_iso(),
             },
         }
         items.append(rec)
