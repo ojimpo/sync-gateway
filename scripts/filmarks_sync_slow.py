@@ -1,105 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import hashlib
 import json
 import random
-import re
 import time
-from datetime import datetime
 from pathlib import Path
 
 import requests
 
-from sync_common import ensure_source, gateway_request, load_api_key, strip_tags
-
-
-def parse_cards(html_text: str, base_url: str):
-    records = []
-    chunks = html_text.split('<div class="c-content-card">')[1:]
-    for c in chunks:
-        # movie id
-        m = re.search(r'href="/movies/(\d+)(?:\?mark_id=(\d+))?"', c)
-        if not m:
-            continue
-        movie_id = m.group(1)
-        mark_id = m.group(2)
-
-        # title + year text
-        title = None
-        year = None
-        my = re.search(r'<h3 class="c-content-card__title">\s*<a [^>]*>(.*?)<span>\((\d{4})年製作の映画\)</span>', c, flags=re.S)
-        if my:
-            title = strip_tags(my.group(1))
-            year = int(my.group(2))
-        else:
-            mt = re.search(r'<h3 class="c-content-card__title">\s*<a [^>]*>(.*?)</a>', c, flags=re.S)
-            if mt:
-                title = strip_tags(mt.group(1))
-
-        # rating
-        rating = None
-        mr = re.search(r'<div class="c-rating__score">([0-9.\-]+)</div>', c)
-        if mr:
-            txt = mr.group(1).strip()
-            if txt != "-":
-                try:
-                    rating = float(txt)
-                except ValueError:
-                    rating = None
-
-        # review teaser text
-        review = None
-        mrev = re.search(r'<p class="c-content-card__review">(.*?)</p>', c, flags=re.S)
-        if mrev:
-            review = strip_tags(mrev.group(1).replace('>>続きを読む', ''))
-
-        # review id/url
-        review_id = None
-        mri = re.search(r'/reviews/(\d+)', c)
-        if mri:
-            review_id = mri.group(1)
-
-        source_url = f"{base_url}/movies/{movie_id}"
-        if review_id:
-            source_url = f"{base_url}/movies/{movie_id}/reviews/{review_id}"
-
-        # external_id: mark_id > review_id > movie_id hash fallback
-        if mark_id:
-            external_id = f"fm_mark_{mark_id}"
-        elif review_id:
-            external_id = f"fm_review_{review_id}"
-        elif movie_id:
-            external_id = f"fm_movie_{movie_id}"
-        else:
-            external_id = "fm_" + hashlib.sha1(source_url.encode()).hexdigest()[:16]
-
-        records.append(
-            {
-                "source_slug": "filmarks",
-                "external_id": external_id,
-                "record_type": "movie",
-                "title": title,
-                "author": None,
-                "rating": rating,
-                "status": "watched",
-                "event_date": None,
-                "payload": {
-                    "source_url": source_url,
-                    "movie_id": movie_id,
-                    "mark_id": mark_id,
-                    "review_id": review_id,
-                    "review": review,
-                    "year": year,
-                    "collected_at": datetime.utcnow().isoformat() + "Z",
-                },
-            }
-        )
-    return records
-
-
-def max_page(html_text: str, user_slug: str) -> int:
-    nums = [int(x) for x in re.findall(rf'/users/{re.escape(user_slug)}\?page=(\d+)', html_text)]
-    return max(nums) if nums else 1
+from filmarks_common import max_page, parse_cards
+from sync_common import ensure_source, gateway_request, load_api_key
 
 
 def main():

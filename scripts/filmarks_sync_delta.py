@@ -1,114 +1,21 @@
 #!/usr/bin/env python3
 import argparse
-import hashlib
 import json
 import random
-import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
 
+from filmarks_common import extract_movie_jsonld, max_page, parse_cards
 from sync_common import (
     ensure_source,
     gateway_request,
     load_api_key,
     load_state,
     save_state,
-    strip_tags,
 )
-
-
-def parse_cards(html_text: str, base_url: str):
-    records = []
-    chunks = html_text.split('<div class="c-content-card">')[1:]
-    for c in chunks:
-        m = re.search(r'href="/movies/(\d+)(?:\?mark_id=(\d+))?"', c)
-        if not m:
-            continue
-        movie_id = m.group(1)
-        mark_id = m.group(2)
-
-        title = None
-        year = None
-        my = re.search(r'<h3 class="c-content-card__title">\s*<a [^>]*>(.*?)<span>\((\d{4})年製作の映画\)</span>', c, flags=re.S)
-        if my:
-            title = strip_tags(my.group(1))
-            year = int(my.group(2))
-        else:
-            mt = re.search(r'<h3 class="c-content-card__title">\s*<a [^>]*>(.*?)</a>', c, flags=re.S)
-            if mt:
-                title = strip_tags(mt.group(1))
-
-        rating = None
-        mr = re.search(r'<div class="c-rating__score">([0-9.\-]+)</div>', c)
-        if mr:
-            txt = mr.group(1).strip()
-            if txt != "-":
-                try:
-                    rating = float(txt)
-                except ValueError:
-                    rating = None
-
-        review = None
-        mrev = re.search(r'<p class="c-content-card__review">(.*?)</p>', c, flags=re.S)
-        if mrev:
-            review = strip_tags(mrev.group(1).replace('>>続きを読む', ''))
-
-        review_id = None
-        mri = re.search(r'/reviews/(\d+)', c)
-        if mri:
-            review_id = mri.group(1)
-
-        source_url = f"{base_url}/movies/{movie_id}"
-        if review_id:
-            source_url = f"{base_url}/movies/{movie_id}/reviews/{review_id}"
-
-        if mark_id:
-            external_id = f"fm_mark_{mark_id}"
-        elif review_id:
-            external_id = f"fm_review_{review_id}"
-        elif movie_id:
-            external_id = f"fm_movie_{movie_id}"
-        else:
-            external_id = "fm_" + hashlib.sha1(source_url.encode()).hexdigest()[:16]
-
-        records.append(
-            {
-                "source_slug": "filmarks",
-                "external_id": external_id,
-                "record_type": "movie",
-                "title": title,
-                "author": None,
-                "rating": rating,
-                "status": "watched",
-                "event_date": None,
-                "payload": {
-                    "source_url": source_url,
-                    "movie_id": movie_id,
-                    "mark_id": mark_id,
-                    "review_id": review_id,
-                    "review": review,
-                    "year": year,
-                    "collected_at": datetime.now(UTC).isoformat(),
-                },
-            }
-        )
-    return records
-
-
-def extract_movie_jsonld(html_text: str) -> dict | None:
-    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html_text, flags=re.S)
-    for raw in blocks:
-        s = raw.strip()
-        try:
-            obj = json.loads(s)
-        except Exception:
-            continue
-        if isinstance(obj, dict) and obj.get("@type") == "Movie":
-            return obj
-    return None
 
 
 def enrich_record_with_movie_detail(session: requests.Session, record: dict, delay_min: float, delay_max: float):
@@ -150,11 +57,6 @@ def enrich_record_with_movie_detail(session: requests.Session, record: dict, del
 
     # 詳細ページ連打を避ける
     time.sleep(random.uniform(delay_min, delay_max))
-
-
-def max_page(html_text: str, user_slug: str) -> int:
-    nums = [int(x) for x in re.findall(rf'/users/{re.escape(user_slug)}\?page=(\d+)', html_text)]
-    return max(nums) if nums else 1
 
 
 def main():
