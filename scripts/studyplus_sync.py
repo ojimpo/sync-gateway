@@ -17,11 +17,13 @@ import os
 import subprocess
 import sys
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 import requests
+
+from sync_common import gateway_request, load_state, save_state
+from sync_common import load_api_key as _load_api_key_common
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -228,38 +230,8 @@ def aggregate_daily(records: list[dict]) -> dict[str, dict]:
 # ── Gateway helpers ───────────────────────────────────────────────────────────
 
 def load_api_key(repo_root: Path) -> str:
-    env = repo_root / ".env"
-    if not env.exists():
-        raise RuntimeError(".env not found")
-    for line in env.read_text().splitlines():
-        if line.startswith("GATEWAY_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    raise RuntimeError("GATEWAY_API_KEY not found in .env")
-
-
-def gateway_request(base: str, path: str, method: str = "GET", payload=None, api_key: str | None = None):
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode()
-    req = Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=30) as res:
-        body = res.read().decode() or "{}"
-        return res.status, json.loads(body)
-
-
-def load_state(path: Path) -> dict:
-    if not path.exists():
-        return {"known_external_ids": [], "last_run_at": None}
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {"known_external_ids": [], "last_run_at": None}
-
-
-def save_state(path: Path, state: dict):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, ensure_ascii=False, indent=2))
+    # このスクリプトは従来どおりキーが無ければエラーにする
+    return _load_api_key_common(repo_root, required=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

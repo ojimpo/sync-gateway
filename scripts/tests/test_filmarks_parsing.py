@@ -113,8 +113,9 @@ class TestExtractMovieJsonld:
         assert delta.extract_movie_jsonld("<html></html>") is None
 
 
-def test_iso_date_from_jp():
-    assert slow.iso_date_from_jp("2026/03/10") == "2026-03-10T00:00:00+09:00"
-    assert slow.iso_date_from_jp("2026/3/1") == "2026-03-01T00:00:00+09:00"
-    assert slow.iso_date_from_jp("日付なし") is None
-    assert slow.iso_date_from_jp(None) is None
+def test_iso_date_jp():
+    import sync_common
+    assert sync_common.iso_date_jp("2026/03/10") == "2026-03-10T00:00:00+09:00"
+    assert sync_common.iso_date_jp("2026/3/1") == "2026-03-01T00:00:00+09:00"
+    assert sync_common.iso_date_jp("日付なし") is None
+    assert sync_common.iso_date_jp(None) is None

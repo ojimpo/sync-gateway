@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 import argparse
 import hashlib
-import html
 import json
 import random
 import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 import requests
 
-
-def strip_tags(s: str | None) -> str | None:
-    if not s:
-        return None
-    s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s or None
+from sync_common import (
+    ensure_source,
+    gateway_request,
+    load_api_key,
+    load_state,
+    save_state,
+    strip_tags,
+)
 
 
 def parse_cards(html_text: str, base_url: str):
@@ -159,41 +157,6 @@ def max_page(html_text: str, user_slug: str) -> int:
     return max(nums) if nums else 1
 
 
-def gateway_request(base: str, path: str, method: str = "GET", payload=None, api_key: str | None = None):
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode()
-    req = Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=30) as res:
-        body = res.read().decode() or "{}"
-        return res.status, json.loads(body)
-
-
-def load_api_key(repo_root: Path) -> str:
-    env = repo_root / ".env"
-    if not env.exists():
-        return ""
-    for line in env.read_text().splitlines():
-        if line.startswith("GATEWAY_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return ""
-
-
-def load_state(path: Path):
-    if not path.exists():
-        return {"known_external_ids": [], "last_run_at": None}
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {"known_external_ids": [], "last_run_at": None}
-
-
-def save_state(path: Path, state: dict):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, ensure_ascii=False, indent=2))
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--user-slug", default="ojimpo")
@@ -219,17 +182,7 @@ def main():
     state_path = Path(args.state_file) if args.state_file else (repo / "scripts" / "state" / "filmarks_delta_state.json")
 
     if not args.dry_run:
-        code, sources = gateway_request(args.gateway, "/api/v1/sources")
-        if code != 200:
-            raise SystemExit(f"failed sources: {code}")
-        if not any(s.get("slug") == "filmarks" for s in sources):
-            gateway_request(
-                args.gateway,
-                "/api/v1/sources/register",
-                method="POST",
-                payload={"slug": "filmarks", "display_name": "Filmarks"},
-                api_key=key,
-            )
+        ensure_source(args.gateway, "filmarks", "Filmarks", key)
 
     state = load_state(state_path)
     known_ids = list(state.get("known_external_ids") or [])

@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 import argparse
-import html
 import json
 import random
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 import requests
+
+from sync_common import (
+    ensure_source,
+    gateway_request,
+    iso_date_jp as iso_date,
+    load_api_key,
+    strip_tags,
+)
 
 STATE_PATH = {
     "read": "read",
@@ -17,25 +23,6 @@ STATE_PATH = {
     "wish": "wish",
     "stacked": "stacked",
 }
-
-
-def iso_date(s: str | None) -> str | None:
-    if not s:
-        return None
-    m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})", s)
-    if not m:
-        return None
-    y, mo, d = m.groups()
-    return f"{y}-{int(mo):02d}-{int(d):02d}T00:00:00+09:00"
-
-
-def strip_tags(s: str | None) -> str | None:
-    if not s:
-        return None
-    s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s or None
 
 
 def parse_page(html_text: str, base_url: str, status_value: str):
@@ -117,27 +104,6 @@ def max_page(html_text: str, user_id: str, path_key: str) -> int:
     return max(nums) if nums else 1
 
 
-def gateway_request(base: str, path: str, method: str = "GET", payload=None, api_key: str | None = None):
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode()
-    req = Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=30) as res:
-        body = res.read().decode() or "{}"
-        return res.status, json.loads(body)
-
-
-def load_api_key(repo_root: Path) -> str:
-    env = repo_root / ".env"
-    if not env.exists():
-        return ""
-    for line in env.read_text().splitlines():
-        if line.startswith("GATEWAY_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return ""
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--user-id", default="1006219")
@@ -154,11 +120,8 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     key = load_api_key(repo)
 
-    code, sources = gateway_request(args.gateway, "/api/v1/sources")
-    if code != 200:
-        raise SystemExit(f"failed sources: {code}")
-    if not any(s.get("slug") == "bookmeter" for s in sources) and not args.dry_run:
-        gateway_request(args.gateway, "/api/v1/sources/register", method="POST", payload={"slug": "bookmeter", "display_name": "読書メーター"}, api_key=key)
+    if not args.dry_run:
+        ensure_source(args.gateway, "bookmeter", "読書メーター", key)
 
     sess = requests.Session()
     sess.headers.update({"User-Agent": "Mozilla/5.0"})

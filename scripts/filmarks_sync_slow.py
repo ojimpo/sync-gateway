@@ -1,36 +1,16 @@
 #!/usr/bin/env python3
 import argparse
 import hashlib
-import html
 import json
 import random
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 import requests
 
-
-def strip_tags(s: str | None) -> str | None:
-    if not s:
-        return None
-    s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s or None
-
-
-def iso_date_from_jp(s: str | None) -> str | None:
-    if not s:
-        return None
-    # 例: (2026年製作の映画) / 2026/03/10
-    m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})", s)
-    if m:
-        y, mo, d = m.groups()
-        return f"{y}-{int(mo):02d}-{int(d):02d}T00:00:00+09:00"
-    return None
+from sync_common import ensure_source, gateway_request, load_api_key, strip_tags
 
 
 def parse_cards(html_text: str, base_url: str):
@@ -122,27 +102,6 @@ def max_page(html_text: str, user_slug: str) -> int:
     return max(nums) if nums else 1
 
 
-def gateway_request(base: str, path: str, method: str = "GET", payload=None, api_key: str | None = None):
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode()
-    req = Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=30) as res:
-        body = res.read().decode() or "{}"
-        return res.status, json.loads(body)
-
-
-def load_api_key(repo_root: Path) -> str:
-    env = repo_root / ".env"
-    if not env.exists():
-        return ""
-    for line in env.read_text().splitlines():
-        if line.startswith("GATEWAY_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return ""
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--user-slug", default="ojimpo")
@@ -160,17 +119,7 @@ def main():
     key = load_api_key(repo)
 
     if not args.dry_run:
-        code, sources = gateway_request(args.gateway, "/api/v1/sources")
-        if code != 200:
-            raise SystemExit(f"failed sources: {code}")
-        if not any(s.get("slug") == "filmarks" for s in sources):
-            gateway_request(
-                args.gateway,
-                "/api/v1/sources/register",
-                method="POST",
-                payload={"slug": "filmarks", "display_name": "Filmarks"},
-                api_key=key,
-            )
+        ensure_source(args.gateway, "filmarks", "Filmarks", key)
 
     sess = requests.Session()
     sess.headers.update({"User-Agent": "Mozilla/5.0"})

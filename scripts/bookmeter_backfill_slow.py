@@ -2,37 +2,23 @@
 import argparse
 import html
 import json
-import os
 import random
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urljoin
-from urllib.request import Request, urlopen
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-
-def iso_date(s: str | None) -> str | None:
-    if not s:
-        return None
-    m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})", s)
-    if not m:
-        return None
-    y, mo, d = m.groups()
-    return f"{y}-{int(mo):02d}-{int(d):02d}T00:00:00+09:00"
-
-
-def strip_tags(s: str | None) -> str | None:
-    if not s:
-        return None
-    s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s or None
+from sync_common import (
+    ensure_source,
+    gateway_request,
+    iso_date_jp as iso_date,
+    load_api_key,
+    strip_tags,
+)
 
 
 def parse_read_page(html_text: str, base_url: str):
@@ -133,27 +119,6 @@ def get_max_page(html_text: str, user_id: str) -> int:
     return max(nums) if nums else 1
 
 
-def gateway_request(base: str, path: str, method: str = "GET", payload=None, api_key: str | None = None):
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode()
-    req = Request(base.rstrip("/") + path, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=30) as res:
-        body = res.read().decode() or "{}"
-        return res.status, json.loads(body)
-
-
-def load_api_key(repo_root: Path) -> str:
-    env = repo_root / ".env"
-    if not env.exists():
-        return ""
-    for line in env.read_text().splitlines():
-        if line.startswith("GATEWAY_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return ""
-
-
 def fetch_with_retry(session: requests.Session, url: str, timeout: int = 30, retries: int = 6):
     last_err = None
     for i in range(retries):
@@ -202,20 +167,8 @@ def main():
     )
 
     # ensure source exists
-    code, sources = gateway_request(args.gateway, "/api/v1/sources")
-    if code != 200:
-        raise SystemExit(f"failed sources: {code}")
-    if not any(s.get("slug") == "bookmeter" for s in sources):
-        if args.dry_run:
-            print("[dry-run] would register source bookmeter")
-        else:
-            gateway_request(
-                args.gateway,
-                "/api/v1/sources/register",
-                method="POST",
-                payload={"slug": "bookmeter", "display_name": "読書メーター"},
-                api_key=api_key,
-            )
+    if not args.dry_run:
+        ensure_source(args.gateway, "bookmeter", "読書メーター", api_key)
 
     url0 = f"{args.base_url}/users/{args.user_id}/books/read"
     r0 = fetch_with_retry(session, url0, timeout=30)
