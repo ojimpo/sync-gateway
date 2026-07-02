@@ -81,6 +81,21 @@ cd backend
 python seed.py
 ```
 
+**テスト**
+
+backend API と同期スクリプトのパース処理に characterization test がある。
+
+```bash
+pip install -r backend/requirements-dev.txt
+
+# 全テスト
+python3 -m pytest backend/tests scripts/tests
+
+# backend API のみ / スクリプトのみ
+python3 -m pytest backend/tests
+python3 -m pytest scripts/tests
+```
+
 ## 認証
 
 書き込み系エンドポイント（POST / PATCH）は Bearer トークンで保護。
