@@ -194,8 +194,10 @@ sync-gateway/
 │   │       ├── ingest.py
 │   │       └── records.py
 │   ├── migrations/          # Alembic マイグレーション
+│   ├── tests/               # API characterization tests (pytest)
 │   ├── seed.py
 │   ├── requirements.txt
+│   ├── requirements-dev.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
@@ -205,12 +207,18 @@ sync-gateway/
 │   │       ├── Overview.tsx
 │   │       ├── RunsTable.tsx
 │   │       ├── SourcesTable.tsx
-│   │       └── RecordsPanel.tsx
+│   │       ├── RecordsPanel.tsx
+│   │       └── Table.tsx    # 共通テーブルUI
 │   ├── Dockerfile
 │   └── nginx.conf
 ├── samples/
 │   └── bookmeter_first_run_payload.json
 ├── scripts/
+│   ├── sync_common.py       # 同期スクリプト共通ヘルパー
+│   ├── filmarks_common.py   # Filmarks HTMLパース共通処理
+│   ├── bookmeter_*.py / filmarks_*.py / studyplus_sync.py  # 各サービスの同期スクリプト
+│   ├── run_sync_*.sh        # cron 用ラッパー
+│   ├── tests/               # スクリプトの characterization tests
 │   └── gateway_first_run_check.sh
 ├── data/                    # SQLite（gitignore 済み）
 ├── docs/
