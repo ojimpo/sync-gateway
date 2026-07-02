@@ -1,3 +1,5 @@
+name: sync-gateway
+
 services:
   backend:
     build: ./backend

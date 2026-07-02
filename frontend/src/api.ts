@@ -13,6 +13,8 @@ export interface Source {
   description: string | null;
   active: boolean;
   created_at: string;
+  last_update_at: string | null;
+  representative_url: string | null;
 }
 
 export interface Run {
@@ -40,6 +42,7 @@ export interface Record {
   status: string | null;
   event_date: string | null;
   ingested_at: string;
+  payload: unknown;
 }
 
 export const api = {

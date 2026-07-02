@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
 from ..auth import require_api_key
 from ..database import get_db
-from ..models import Source, Record, Run, IngestError
+from ..models import IngestError, Record, Run, Source
 from ..schemas import IngestBatch, IngestRecord, IngestResponse
 
 router = APIRouter(prefix="/api/v1/ingest", tags=["ingest"])
@@ -12,7 +15,7 @@ def _upsert_source(slug: str, db: Session) -> Source | None:
     return db.query(Source).filter(Source.slug == slug).first()
 
 
-def _ingest_one(rec: IngestRecord, db: Session) -> tuple[bool, str, bool | None]:
+def _ingest_one(rec: IngestRecord, effective_run_id: int | None, db: Session) -> tuple[bool, str, bool | None]:
     """Upsert a single record.
 
     Returns (ok, error_msg, was_created).
@@ -32,7 +35,7 @@ def _ingest_one(rec: IngestRecord, db: Session) -> tuple[bool, str, bool | None]
         )
 
     if existing:
-        existing.run_id = rec.run_id if rec.run_id is not None else existing.run_id
+        existing.run_id = effective_run_id if effective_run_id is not None else existing.run_id
         existing.record_type = rec.record_type if rec.record_type is not None else existing.record_type
         existing.title = rec.title if rec.title is not None else existing.title
         existing.author = rec.author if rec.author is not None else existing.author
@@ -47,7 +50,7 @@ def _ingest_one(rec: IngestRecord, db: Session) -> tuple[bool, str, bool | None]
     else:
         record = Record(
             source_id=source.id,
-            run_id=rec.run_id,
+            run_id=effective_run_id,
             external_id=rec.external_id,
             record_type=rec.record_type,
             title=rec.title,
@@ -81,27 +84,47 @@ def ingest_events(body: IngestBatch, db: Session = Depends(get_db), _key: str = 
     failed = 0
     errors: list[str] = []
 
+    # Auto-create one Run per source_slug for records that have no run_id
+    auto_runs: dict[str, int] = {}  # source_slug -> run_id
     for rec in body.records:
+        if rec.run_id is None and rec.source_slug not in auto_runs:
+            source = _upsert_source(rec.source_slug, db)
+            if source:
+                run = Run(source_id=source.id, status="running")
+                db.add(run)
+                db.flush()
+                auto_runs[rec.source_slug] = run.id
+
+    for rec in body.records:
+        effective_run_id = rec.run_id if rec.run_id is not None else auto_runs.get(rec.source_slug)
         try:
-            ok, msg, was_created = _ingest_one(rec, db)
+            ok, msg, was_created = _ingest_one(rec, effective_run_id, db)
             if ok:
                 accepted += 1
             else:
                 failed += 1
                 errors.append(msg)
-                if rec.run_id:
+                if effective_run_id:
                     db.add(IngestError(
-                        run_id=rec.run_id,
+                        run_id=effective_run_id,
                         raw_payload=rec.model_dump(mode="json"),
                         error_message=msg,
                     ))
-            if rec.run_id:
-                _update_run_stats(rec.run_id, was_created if ok else None, db)
+            if effective_run_id:
+                _update_run_stats(effective_run_id, was_created if ok else None, db)
         except Exception as e:
             failed += 1
             errors.append(str(e))
-            if rec.run_id:
-                _update_run_stats(rec.run_id, None, db)
+            if effective_run_id:
+                _update_run_stats(effective_run_id, None, db)
+
+    # Finalize auto-created runs
+    now = datetime.now(timezone.utc)
+    for run_id in auto_runs.values():
+        run = db.get(Run, run_id)
+        if run:
+            run.status = "success" if run.records_failed == 0 else "failed"
+            run.finished_at = now
 
     db.commit()
     return IngestResponse(accepted=accepted, failed=failed, errors=errors)

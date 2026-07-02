@@ -111,8 +111,8 @@ export function Table({ cols, rows }: { cols: string[]; rows: (React.ReactNode)[
   const tdStyle: React.CSSProperties = { padding: "10px 14px", borderBottom: "1px solid var(--border)", color: "var(--text)", verticalAlign: "middle" };
   const thStyle: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" };
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
         <thead>
           <tr style={{ background: "var(--surface2)" }}>
             {cols.map(c => <th key={c} style={thStyle}>{c}</th>)}
