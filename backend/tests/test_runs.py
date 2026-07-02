@@ -1,5 +1,5 @@
 """/api/v1/runs の現状挙動を固定する characterization test。"""
-from conftest import register_source
+from api_helpers import register_source
 
 
 def test_create_run(client):

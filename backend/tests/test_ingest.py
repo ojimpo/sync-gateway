@@ -2,7 +2,7 @@
 
 upsert・run 統計・auto-run 作成/確定など、このAPIの中核ロジックを対象とする。
 """
-from conftest import register_source
+from api_helpers import register_source
 
 
 def _ingest(client, records):

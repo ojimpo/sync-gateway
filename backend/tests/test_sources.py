@@ -1,5 +1,5 @@
 """/api/v1/sources の現状挙動を固定する characterization test。"""
-from conftest import register_source
+from api_helpers import register_source
 
 
 def test_register_source_returns_created_source(client):
