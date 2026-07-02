@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Source } from "../api";
-import { Table } from "./Overview";
+import { Table } from "./Table";
 
 function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Run, type Source } from "../api";
-import { StatusBadge, Table, dur } from "./Overview";
+import { StatusBadge, dur } from "./Overview";
+import { Table } from "./Table";
 
 export default function RunsTable() {
   const [runs, setRuns] = useState<Run[]>([]);

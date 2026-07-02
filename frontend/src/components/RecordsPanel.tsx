@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Record, type Source } from "../api";
+import { HoverRow, TableContainer, tableTdStyle, tableThStyle } from "./Table";
 
 export default function RecordsPanel() {
   const [records, setRecords] = useState<Record[]>([]);
@@ -14,16 +15,8 @@ export default function RecordsPanel() {
 
   const sourceMap = Object.fromEntries(sources.map(s => [s.id, s]));
 
-  const tdStyle: React.CSSProperties = {
-    padding: "10px 14px", borderBottom: "1px solid var(--border)",
-    color: "var(--text)", verticalAlign: "top", fontSize: 13,
-  };
-  const thStyle: React.CSSProperties = {
-    padding: "9px 14px", textAlign: "left", fontSize: 11,
-    color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.05em",
-    textTransform: "uppercase", borderBottom: "1px solid var(--border)",
-    whiteSpace: "nowrap",
-  };
+  const tdStyle: React.CSSProperties = { ...tableTdStyle, verticalAlign: "top", fontSize: 13 };
+  const thStyle: React.CSSProperties = { ...tableThStyle, whiteSpace: "nowrap" };
 
   return (
     <>
@@ -42,8 +35,7 @@ export default function RecordsPanel() {
         </select>
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
+      <TableContainer minWidth={800}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
               {["ID", "Source", "Type", "Ext ID", "Title", "Status", "Event Date", "Ingested At", "Payload"].map(c => (
@@ -55,10 +47,7 @@ export default function RecordsPanel() {
             {records.length === 0 ? (
               <tr><td colSpan={9} style={{ ...tdStyle, color: "var(--text-muted)", textAlign: "center", padding: 24 }}>No data</td></tr>
             ) : records.map(r => (
-              <tr key={r.id}
-                style={{ transition: "background 0.1s" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--surface2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "")}>
+              <HoverRow key={r.id}>
                 <td style={{ ...tdStyle, color: "var(--text-muted)", fontSize: 12 }}>{r.id}</td>
                 <td style={tdStyle}>
                   <span style={{ fontFamily: "monospace", fontSize: 12, color: "var(--accent)" }}>
@@ -86,11 +75,10 @@ export default function RecordsPanel() {
                 <td style={{ ...tdStyle, maxWidth: 260 }}>
                   <PayloadCell payload={r.payload} />
                 </td>
-              </tr>
+              </HoverRow>
             ))}
           </tbody>
-        </table>
-      </div>
+      </TableContainer>
     </>
   );
 }

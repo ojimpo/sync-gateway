@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Run, type Source } from "../api";
+import { Table } from "./Table";
 
 interface Stats {
   totalRuns: number;
@@ -104,33 +105,6 @@ export function StatusBadge({ status }: { status: string }) {
       padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
       background: c.bg, color: c.color,
     }}>{status}</span>
-  );
-}
-
-export function Table({ cols, rows }: { cols: string[]; rows: (React.ReactNode)[][] }) {
-  const tdStyle: React.CSSProperties = { padding: "10px 14px", borderBottom: "1px solid var(--border)", color: "var(--text)", verticalAlign: "middle" };
-  const thStyle: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" };
-  return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
-        <thead>
-          <tr style={{ background: "var(--surface2)" }}>
-            {cols.map(c => <th key={c} style={thStyle}>{c}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0
-            ? <tr><td colSpan={cols.length} style={{ ...tdStyle, color: "var(--text-muted)", textAlign: "center", padding: 24 }}>No data</td></tr>
-            : rows.map((row, i) => (
-              <tr key={i} style={{ transition: "background 0.1s" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--surface2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                {row.map((cell, j) => <td key={j} style={tdStyle}>{cell}</td>)}
-              </tr>
-            ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 

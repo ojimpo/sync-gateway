@@ -17,3 +17,4 @@ __pycache__/
 # 同期スクリプトの実行時成果物
 scripts/logs/
 scripts/state/
+*.tsbuildinfo
