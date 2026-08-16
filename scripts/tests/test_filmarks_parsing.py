@@ -248,3 +248,52 @@ class TestReportBrokenScrape:
         monkeypatch.setattr(delta, "gateway_request", fake)
         delta.report_broken_scrape("http://gw", "key", streak=3, pages=3)
         assert [c for c in calls if c[0] == "POST"] == []
+
+
+class TestExtractReviewDatetime:
+    """一覧カードに日付が無いので、鑑賞日はレビュー詳細ページから取る。
+
+    公開日フォールバックだと「公開が何年も前の作品を今日観た」ケースで
+    何年も過去に記録されてしまう（秒速5センチメートルで7ヶ月ずれた）。
+    """
+
+    def test_extracts_jst_iso(self):
+        html = '<time class="c-media__date" datetime="2026-05-06 03:57">2026/05/06 03:57</time>'
+        assert fc.extract_review_datetime(html) == "2026-05-06T03:57:00+09:00"
+
+    def test_accepts_iso_separator(self):
+        html = '<time class="c-media__date" datetime="2026-05-06T03:57">x</time>'
+        assert fc.extract_review_datetime(html) == "2026-05-06T03:57:00+09:00"
+
+    def test_ignores_other_time_elements(self):
+        html = (
+            '<time datetime="2020-01-01 00:00">無関係</time>'
+            '<time class="c-media__date" datetime="2026-05-06 03:57">本命</time>'
+        )
+        assert fc.extract_review_datetime(html) == "2026-05-06T03:57:00+09:00"
+
+    def test_none_when_absent(self):
+        assert fc.extract_review_datetime("<html></html>") is None
+        assert fc.extract_review_datetime('<time class="other" datetime="2026-05-06 03:57">x</time>') is None
+
+
+class TestFetchReviewDate:
+    class _Resp:
+        def __init__(self, text): self.text = text
+        def raise_for_status(self): pass
+
+    def test_returns_posted_date(self, monkeypatch):
+        class Sess:
+            def get(self, url, timeout=None):
+                assert url == "https://filmarks.com/movies/118757/reviews/216980657"
+                return TestFetchReviewDate._Resp(
+                    '<time class="c-media__date" datetime="2026-05-06 03:57">x</time>'
+                )
+        assert delta.fetch_review_date(Sess(), "118757", "216980657") == "2026-05-06T03:57:00+09:00"
+
+    def test_returns_none_on_error(self):
+        """取得に失敗しても例外を投げない（公開日フォールバックに委ねる）。"""
+        class Sess:
+            def get(self, url, timeout=None):
+                raise OSError("boom")
+        assert delta.fetch_review_date(Sess(), "1", "2") is None

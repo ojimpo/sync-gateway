@@ -8,7 +8,12 @@ from pathlib import Path
 
 import requests
 
-from filmarks_common import extract_movie_jsonld, max_page, parse_cards
+from filmarks_common import (
+    extract_movie_jsonld,
+    extract_review_datetime,
+    max_page,
+    parse_cards,
+)
 from sync_common import (
     ensure_source,
     gateway_request,
@@ -62,10 +67,34 @@ def report_broken_scrape(gateway: str, api_key: str, streak: int, pages: int) ->
         print(f"ALERT: gateway への通報に失敗: {e}")
 
 
+def fetch_review_date(session: requests.Session, movie_id: str, review_id: str) -> str | None:
+    """レビュー詳細ページから投稿日時（＝実質の鑑賞日）を取る。
+
+    ユーザー一覧のカードには日付が一切無いため、ここを見ないと鑑賞日が分からない。
+    取れなかった場合の公開日フォールバックは呼び出し側に任せる。
+    """
+    url = f"https://filmarks.com/movies/{movie_id}/reviews/{review_id}"
+    try:
+        r = session.get(url, timeout=30)
+        r.raise_for_status()
+        return extract_review_datetime(r.text)
+    except Exception:
+        return None
+
+
 def enrich_record_with_movie_detail(session: requests.Session, record: dict, delay_min: float, delay_max: float):
     movie_id = record.get("payload", {}).get("movie_id")
     if not movie_id:
         return
+
+    # 鑑賞日を先に確定させる。公開日フォールバックは最終手段（公開が何年も前の
+    # 作品を今日観た場合、公開日を使うと何年も過去に記録されてしまう）。
+    review_id = record.get("payload", {}).get("review_id")
+    if not record.get("event_date") and review_id:
+        posted = fetch_review_date(session, movie_id, review_id)
+        if posted:
+            record["event_date"] = posted
+        time.sleep(random.uniform(delay_min, delay_max))
 
     detail_url = f"https://filmarks.com/movies/{movie_id}"
     r = session.get(detail_url, timeout=30)
@@ -84,7 +113,7 @@ def enrich_record_with_movie_detail(session: requests.Session, record: dict, del
     if directors:
         record["author"] = directors[0]
 
-    # 公開日を event_date に採用（鑑賞日が取れないため）
+    # レビュー投稿日が取れなかった場合のみ、最終手段として公開日を使う
     if not record.get("event_date"):
         rd = meta.get("releaseDate")
         if isinstance(rd, str) and rd:

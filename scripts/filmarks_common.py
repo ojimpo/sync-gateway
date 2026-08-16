@@ -100,6 +100,21 @@ def max_page(html_text: str, user_slug: str) -> int:
     return max(nums) if nums else 1
 
 
+# レビュー詳細ページの投稿日時。ユーザー一覧のカードには日付が一切無いので、
+# 鑑賞日を知るにはここを見るしかない。Filmarks は日本のサービスなので JST 扱い。
+REVIEW_DATE_RE = re.compile(
+    r'<time[^>]*class="[^"]*c-media__date[^"]*"[^>]*datetime="(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})'
+)
+
+
+def extract_review_datetime(html_text: str) -> str | None:
+    """レビュー詳細ページから投稿日時を ISO8601(+09:00) で返す。無ければ None。"""
+    m = REVIEW_DATE_RE.search(html_text)
+    if not m:
+        return None
+    return f"{m.group(1)}T{m.group(2)}:00+09:00"
+
+
 def extract_movie_jsonld(html_text: str) -> dict | None:
     blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html_text, flags=re.S)
     for raw in blocks:
