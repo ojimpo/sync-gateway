@@ -18,6 +18,50 @@ from sync_common import (
 )
 
 
+# マークが1件でもあるユーザーのページなら、1ページ目は必ず何か parse できる。
+# 全ページ 0 件はスクレイプ破損（Filmarks の HTML 変更・遮断・ログイン要求）の
+# サインであって「新着なし」ではない。ただし一時的な失敗で騒がないよう、
+# 連続でこの回数に達してから異常として報告する（30分間隔なので3回=1.5時間）。
+ZERO_PARSE_ALERT_AFTER = 3
+
+
+def next_zero_parse_streak(previous: int | None, total_parsed: int) -> int:
+    """パース0件の連続回数を更新する。1件でも取れたらリセット。"""
+    return (int(previous or 0) + 1) if total_parsed == 0 else 0
+
+
+def report_broken_scrape(gateway: str, api_key: str, streak: int, pages: int) -> None:
+    """パース0件が続いていることを gateway に failed run として残す。
+
+    cron のログは誰も見ないので（実際この破損は5ヶ月間見過ごされた）、
+    他のソースと同じ runs テーブルに出して初めて気付ける状態にする。
+    """
+    message = (
+        f"パース0件が{streak}回連続（{pages}ページ走査、HTTP取得は成功）。"
+        "Filmarks側のHTML変更の可能性が高い。filmarks_common.parse_cards を確認すること。"
+    )
+    print(f"ALERT: {message}")
+    # gateway_request は 4xx/5xx で HTTPError を投げるので、通信・認証エラーは
+    # 例外側で拾う。通報に失敗しても同期本体は落とさない。
+    try:
+        _, sources = gateway_request(gateway, "/api/v1/sources")
+        source_id = next((s["id"] for s in sources if s.get("slug") == "filmarks"), None)
+        if source_id is None:
+            print("ALERT: gateway に filmarks source が見つからず run を登録できない")
+            return
+        _, run = gateway_request(
+            gateway, "/api/v1/runs", method="POST",
+            payload={"source_id": source_id}, api_key=api_key,
+        )
+        gateway_request(
+            gateway, f"/api/v1/runs/{run['id']}", method="PATCH",
+            payload={"status": "failed", "error_message": message}, api_key=api_key,
+        )
+        print(f"ALERT: gateway に failed run を登録した (run_id={run['id']})")
+    except Exception as e:
+        print(f"ALERT: gateway への通報に失敗: {e}")
+
+
 def enrich_record_with_movie_detail(session: requests.Session, record: dict, delay_min: float, delay_max: float):
     movie_id = record.get("payload", {}).get("movie_id")
     if not movie_id:
@@ -110,12 +154,16 @@ def main():
     new_records = []
     seen_new = set()
     hit_known = False
+    total_parsed = 0
+    pages_scanned = 0
 
     for p in range(1, pmax + 1):
         url = first_url if p == 1 else f"{first_url}?page={p}"
         r = sess.get(url, timeout=30)
         r.raise_for_status()
         recs = parse_cards(r.text, args.base_url)
+        total_parsed += len(recs)
+        pages_scanned = p
         print(f"  page={p} parsed={len(recs)}")
 
         for rec in recs:
@@ -136,6 +184,14 @@ def main():
 
     print(f"new_records={len(new_records)}")
 
+    # 「新着なし」と「パースが壊れて全部落としている」は new_records=0 では
+    # 区別がつかない。走査したページの合計 parsed で切り分ける。
+    zero_streak = next_zero_parse_streak(state.get("consecutive_zero_parse"), total_parsed)
+    state["consecutive_zero_parse"] = zero_streak
+    scrape_broken = zero_streak >= ZERO_PARSE_ALERT_AFTER
+    if total_parsed == 0:
+        print(f"WARN: parsed=0 (連続{zero_streak}回目)")
+
     if new_records and args.enrich_details:
         print(f"enriching details for {len(new_records)} records...")
         for rec in new_records:
@@ -152,6 +208,9 @@ def main():
         state["last_run_at"] = datetime.now(UTC).isoformat()
         state["last_new_count"] = 0
         save_state(state_path, state)
+        if scrape_broken:
+            report_broken_scrape(args.gateway, key, zero_streak, pages_scanned)
+            raise SystemExit(1)
         print("done no change")
         return
 

@@ -178,3 +178,73 @@ def test_iso_date_jp():
     assert sync_common.iso_date_jp("2026/3/1") == "2026-03-01T00:00:00+09:00"
     assert sync_common.iso_date_jp("日付なし") is None
     assert sync_common.iso_date_jp(None) is None
+
+
+# ── スクレイプ破損の検知 ──────────────────────────────────────────────────────
+#
+# 2026-03-25 の HTML 変更で parsed=0 が5ヶ月続いたが、HTTP は 200 で
+# 「新着なし」と区別がつかず、gateway にも run が残らないので誰も気付けなかった。
+
+
+class TestZeroParseStreak:
+    def test_increments_while_nothing_parses(self):
+        assert delta.next_zero_parse_streak(None, 0) == 1
+        assert delta.next_zero_parse_streak(1, 0) == 2
+        assert delta.next_zero_parse_streak(7, 0) == 8
+
+    def test_resets_when_anything_parses(self):
+        assert delta.next_zero_parse_streak(9, 36) == 0
+        assert delta.next_zero_parse_streak(None, 1) == 0
+
+    def test_alert_threshold_boundary(self):
+        """一時的な失敗では鳴らさず、続いたら鳴る。"""
+        streak = 0
+        fired = []
+        for _ in range(4):
+            streak = delta.next_zero_parse_streak(streak, 0)
+            fired.append(streak >= delta.ZERO_PARSE_ALERT_AFTER)
+        assert fired == [False, False, True, True]
+
+
+class TestReportBrokenScrape:
+    def _stub(self, calls):
+        def fake(base, path, method="GET", payload=None, api_key=None):
+            calls.append((method, path, payload))
+            if path == "/api/v1/sources":
+                return 200, [{"id": 2, "slug": "filmarks"}]
+            if path == "/api/v1/runs":
+                return 201, {"id": 999}
+            return 200, {}
+        return fake
+
+    def test_registers_failed_run(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr(delta, "gateway_request", self._stub(calls))
+        delta.report_broken_scrape("http://gw", "key", streak=3, pages=3)
+
+        assert ("POST", "/api/v1/runs", {"source_id": 2}) in calls
+        patch = [c for c in calls if c[0] == "PATCH"]
+        assert len(patch) == 1
+        assert patch[0][1] == "/api/v1/runs/999"
+        assert patch[0][2]["status"] == "failed"
+        assert "3回連続" in patch[0][2]["error_message"]
+
+    def test_survives_gateway_errors(self, monkeypatch):
+        """通報に失敗しても同期本体を落とさない。
+
+        gateway_request は 4xx/5xx で HTTPError を投げる（返り値でコードを
+        返さない）ので、通信・認証エラーは例外として飛んでくる。
+        """
+        def boom(*a, **k):
+            raise OSError("gateway down")
+        monkeypatch.setattr(delta, "gateway_request", boom)
+        delta.report_broken_scrape("http://gw", "key", streak=3, pages=3)  # 例外を投げない
+
+    def test_no_run_when_source_missing(self, monkeypatch):
+        calls = []
+        def fake(base, path, method="GET", payload=None, api_key=None):
+            calls.append((method, path, payload))
+            return 200, [{"id": 1, "slug": "bookmeter"}]
+        monkeypatch.setattr(delta, "gateway_request", fake)
+        delta.report_broken_scrape("http://gw", "key", streak=3, pages=3)
+        assert [c for c in calls if c[0] == "POST"] == []
