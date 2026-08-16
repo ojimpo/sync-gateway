@@ -55,6 +55,63 @@ class TestParseCards:
         html = card('<a href="/movies/1?mark_id=2">x</a><div class="c-rating__score">-</div>')
         assert fc.parse_cards(html, "https://filmarks.com")[0]["rating"] is None
 
+    def test_full_card_hash_mark_format(self):
+        """2026-03-25 に Filmarks が変えた新形式 (#mark-<id>)。
+
+        旧形式しか見ていなかったため全カードが弾かれ、約5ヶ月間 parsed=0 の
+        まま無音で止まった。external_id は旧形式と同じ体系でないと、
+        復旧時に既存レコードと重複する。
+        """
+        html = card(
+            '<h3 class="c-content-card__title">'
+            '<a href="/movies/123#mark-456">インターステラー<span>(2014年製作の映画)</span></a></h3>'
+            '<div class="c-rating__score">4.5</div>'
+            '<a href="/movies/123/reviews/789">review</a>'
+        )
+        r = fc.parse_cards(html, "https://filmarks.com")[0]
+        assert r["external_id"] == "fm_mark_456"
+        assert r["payload"]["movie_id"] == "123"
+        assert r["payload"]["mark_id"] == "456"
+        assert r["title"] == "インターステラー"
+        assert r["rating"] == 4.5
+
+    def test_both_mark_id_formats_yield_same_external_id(self):
+        old = card('<a href="/movies/123?mark_id=456">x</a>')
+        new = card('<a href="/movies/123#mark-456">x</a>')
+        assert (
+            fc.parse_cards(old, "https://filmarks.com")[0]["external_id"]
+            == fc.parse_cards(new, "https://filmarks.com")[0]["external_id"]
+        )
+
+    def test_live_markup_shape_2026_08(self):
+        """2026-08 時点の実ページから採った並びをそのまま通す回帰テスト。
+
+        カード内には作品リンクの他に /reviews/ や /login?mark_id=... も並ぶ。
+        先頭の作品リンクを拾えていること（/login 側を誤って拾わないこと）を見る。
+        """
+        html = card(
+            '<div class="c-content-card__left">'
+            '<a href="/movies/118757#mark-216980657"><img src="x.jpg"></a></div>'
+            '<div class="c-content-card__right">'
+            '<h3 class="c-content-card__title">'
+            '<a href="/movies/118757#mark-216980657">秒速5センチメートル'
+            '<span>(2025年製作の映画)</span></a></h3>'
+            '<div class="c-rating c-rating--50"><div class="c-rating__star"></div>'
+            '<div class="c-rating__score">5.0</div></div>'
+            '<p class="c-content-card__review">よかった&gt;&gt;続きを読む</p>'
+            '<a href="/movies/118757/reviews/216980657">review</a>'
+            '<a href="/login?mark_id=216980657&amp;movie_id=118757">login</a>'
+            '</div>'
+        )
+        recs = fc.parse_cards(html, "https://filmarks.com")
+        assert len(recs) == 1
+        r = recs[0]
+        assert r["external_id"] == "fm_mark_216980657"
+        assert r["title"] == "秒速5センチメートル"
+        assert r["rating"] == 5.0
+        assert r["payload"]["year"] == 2025
+        assert r["payload"]["source_url"] == "https://filmarks.com/movies/118757/reviews/216980657"
+
     def test_title_without_year_span(self):
         html = card(
             '<h3 class="c-content-card__title"><a href="/movies/1?mark_id=2">タイトルのみ</a></h3>'

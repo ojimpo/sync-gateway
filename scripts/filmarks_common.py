@@ -5,12 +5,22 @@ import re
 
 from sync_common import now_utc_iso, strip_tags
 
+# カード先頭の作品リンクから movie_id と mark_id を取る。
+# mark_id の付き方は Filmarks 側で変わっており、両方を受ける:
+#   旧 (〜2026-03-25): /movies/118757?mark_id=216980657
+#   新 (2026-03-25〜): /movies/118757#mark-216980657
+# 旧形式しか見ていなかったため、2026-03-25 05:00〜05:30 の切り替わりで
+# 全カードが弾かれ、約5ヶ月間 parsed=0 のまま無音で止まっていた。
+# mark_id なし (/movies/118757") も従来どおり許容する（external_id は
+# review_id → movie_id にフォールバックする）。
+MOVIE_LINK_RE = re.compile(r'href="/movies/(\d+)(?:(?:\?mark_id=|#mark-)(\d+))?"')
+
 
 def parse_cards(html_text: str, base_url: str) -> list[dict]:
     records = []
     chunks = html_text.split('<div class="c-content-card">')[1:]
     for c in chunks:
-        m = re.search(r'href="/movies/(\d+)(?:\?mark_id=(\d+))?"', c)
+        m = MOVIE_LINK_RE.search(c)
         if not m:
             continue
         movie_id = m.group(1)
