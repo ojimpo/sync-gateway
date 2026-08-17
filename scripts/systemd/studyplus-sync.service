@@ -1,0 +1,16 @@
+# Studyplus の学習時間を sync-gateway に取り込む（LLM 非依存の定期実行）。
+# 以前は OpenClaw の cron ジョブ studyplus-daily-sync が同じスクリプトを
+# 実行していたが、スケジューラに LLM を挟む必要がないので systemd に移した。
+# 認証情報は従来どおり 1Password service account（~/.config/op/service-account.env）
+# 経由でスクリプト自身が取得する。ログ: scripts/logs/studyplus_*.log
+#
+# インストール:
+#   cp scripts/systemd/studyplus-sync.{service,timer} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now studyplus-sync.timer
+[Unit]
+Description=Studyplus study-time sync to sync-gateway
+
+[Service]
+Type=oneshot
+ExecStart=/home/kouki/dev/sync-gateway/scripts/run_sync_studyplus.sh

@@ -218,6 +218,7 @@ sync-gateway/
 │   ├── filmarks_common.py   # Filmarks HTMLパース共通処理
 │   ├── bookmeter_*.py / filmarks_*.py / studyplus_sync.py  # 各サービスの同期スクリプト
 │   ├── run_sync_*.sh        # cron 用ラッパー
+│   ├── systemd/             # studyplus 定期実行の systemd user unit（毎日22:00 JST）
 │   ├── tests/               # スクリプトの characterization tests
 │   └── gateway_first_run_check.sh
 ├── data/                    # SQLite（gitignore 済み）

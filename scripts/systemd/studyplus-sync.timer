@@ -1,0 +1,13 @@
+# 毎日 22:00 JST（ホストは Asia/Tokyo）。OpenClaw cron 時代と同じ時刻。
+# health-ojimpo 側のスケジューラが毎時 gateway から取り込むので、
+# ここが1日1回動けば study スコアは全自動で流れる。
+[Unit]
+Description=Daily Studyplus sync at 22:00 JST
+
+[Timer]
+OnCalendar=*-*-* 22:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target
